@@ -1,5 +1,4 @@
-package servlet.rbac;
-
+package servlet.exam;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -7,7 +6,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 
 import javax.servlet.ServletException;
@@ -16,22 +14,21 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 /**
- * Servlet implementation class login
+ * Servlet implementation class GetStudentExam
  */
-@WebServlet("/api/usermanage/login")
-public class Login extends HttpServlet {
+@WebServlet("/api/exammanage/getStudentExam")
+public class GetStudentExam extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-    
+       
     /**
      * @see HttpServlet#HttpServlet()
      */
-    public Login() {
+    public GetStudentExam() {
         super();
         // TODO Auto-generated constructor stub
     }
@@ -40,7 +37,9 @@ public class Login extends HttpServlet {
 	 * @see HttpServlet#doGet(HttpServletRequest request, HttpServletResponse response)
 	 */
 	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		doPost(request,response);
+		// TODO Auto-generated method stub
+		//response.getWriter().append("Served at: ").append(request.getContextPath());
+		doPost(request, response);
 	}
 
 	/**
@@ -48,16 +47,16 @@ public class Login extends HttpServlet {
 	 */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		// TODO Auto-generated method stub
+		//doGet(request, response);
 		response.setContentType("text/json; charset=utf-8");
 		PrintWriter out = response.getWriter();
 		Connection conn = null;
-		HttpSession session = request.getSession();
-		//HttpSession session = request.getSession();
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			conn=DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
 			Statement stmt = conn.createStatement();
 			ServletInputStream is;
+			JSONObject result = new JSONObject();
 			try {
 				is = request.getInputStream();
 				int nRead = 1;
@@ -70,52 +69,50 @@ public class Login extends HttpServlet {
 				}
 				String str = new String(bytes, 0, nTotalRead, "utf-8");
 				JSONObject jsonObj = JSONObject.fromObject(str);
-				String userName = jsonObj.getString("userName");
-				String password = jsonObj.getString("password");
-				String sql = "select * from user where userName=? and password=?";
-				String sql2 = "select * from role, user_role where userId = ? and user_role.roleId = role.roleId";
+				String studentId = jsonObj.getString("studentId");
+				String expID = jsonObj.getString("expID");
+				String sql = "select * from exp_exa_user where userId = ? and expID = ?";
+				String sql2 = "select title from exam where examID = ?";
 				PreparedStatement ps = conn.prepareStatement(sql);
-				ps.setString(1, userName);
-				ps.setString(2, password);
+				ps.setString(1, studentId);
+				ps.setString(2, expID);
 				ResultSet rs = ps.executeQuery();
-				JSONObject jsonobj = new JSONObject();
-				JSONArray array = new JSONArray();
-				if(rs.next()){
-					jsonobj.put("success",true);
-					String userId = rs.getString("userId");
+				JSONArray data = new JSONArray();
+				while(rs.next()) {
+					String examID = rs.getString("examID");
+					String answer = rs.getString("answer");
+					String score = rs.getString("score");
+					String comment = rs.getString("comment");
 					PreparedStatement ps2 = conn.prepareStatement(sql2);
-					ps2.setString(1, userId);
+					ps2.setString(1,examID);
 					ResultSet rs2 = ps2.executeQuery();
-					while(rs2.next()) {
-						String roleName = rs2.getString("roleName");
-						array.add(roleName);
+					String title = "";
+					if(rs2.next()) {
+						title += rs2.getString("title");
 					}
-					String sessionId = session.getId();
-					session.setAttribute("userId", userId);
-					session.setAttribute("login", true);
-					jsonobj.put("sessionId",sessionId);
-					jsonobj.put("roles", array);
-					
+					JSONObject temp = new JSONObject();
+					temp.put("title",title);
+					temp.put("examID", examID);
+					temp.put("answer", answer);
+					temp.put("score", score);
+					temp.put("comment", comment);
+					data.add(temp);
 				}
-				else {
-					jsonobj.put("success",false);
-					jsonobj.put("msg", "用户名或密码错误");
-				}
-				out = response.getWriter();
-				out.println(jsonobj);
-				rs.close();
-				stmt.close();
-				conn.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+				result.put("success", true);
+				result.put("data", data);
 			}
-		} catch (SQLException | ClassNotFoundException e) {
-			e.printStackTrace();
+			catch(Exception e) {
+				result.put("success", false);
+				result.put("msg",e.getMessage());
+			}
+			out = response.getWriter();
+			out.println(result);
+			conn.close();
+			stmt.close();
 		}
-		
-		
-		
+		catch(Exception e) {
+			
+		}
 	}
 
 }
-
