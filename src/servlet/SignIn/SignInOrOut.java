@@ -1,4 +1,4 @@
-package servlet;
+package servlet.SignIn;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -16,6 +16,8 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
 import net.sf.json.JSONObject;
 /**
  * servlet implementation class SignIn
@@ -49,6 +51,7 @@ public class SignInOrOut extends HttpServlet {
 		response.setContentType("text/json; charset=utf-8");
 		PrintWriter out = response.getWriter();
 		Connection conn = null;
+		HttpSession session = request.getSession();
 		try {
 			ServletInputStream is = request.getInputStream();
 			int nRead = 1;
@@ -60,26 +63,35 @@ public class SignInOrOut extends HttpServlet {
 					nTotalRead = nTotalRead + nRead;
 			}
 			String str = new String(bytes, 0, nTotalRead, "utf-8");
-			System.out.println(str);
 			JSONObject jsonObj = JSONObject.fromObject(str);
 			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/compuorg?useSSL=false&serverTimezone=GMT","root","mysql2020**");
+			conn=DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
 			Statement stmt = conn.createStatement();
-			String mySno = jsonObj.getString("myStudentNo");
-			String signInOrOut = jsonObj.getString("myColumn"); // "SignInTime" for signIn and "SignOutTime" for signOut
+			String studentId = (String) session.getAttribute("userId");
+			String signInOrOut = jsonObj.getString("signState"); // "SignInTime" for signIn and "SignOutTime" for signOut
 			
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	        String dateTime = df.format(new Date());
-	        
-			String sql = "UPDATE SignIn SET " + signInOrOut + " = '" +  dateTime + "' WHERE Sno = '" + mySno + "'";
-			System.out.println(sql);
-			PreparedStatement ps = conn.prepareStatement(sql);
+	        String sql = "insert into user_sign(studentId, signInTime, signOutTime) values(?,?,?)";
+	        String sql2 = "update user_sign set signOutTime = ? where studentId = ?";
+	        PreparedStatement ps = null;
+	        if(signInOrOut.compareTo("signInTime")==0) {
+	        	ps = conn.prepareStatement(sql);
+	        	ps.setString(1, studentId);
+	        	ps.setString(2, dateTime);
+	        	ps.setString(3, "");
+	        }
+	        else if(signInOrOut.compareTo("signOutTime")==0) {
+	        	ps = conn.prepareStatement(sql2);
+	        	ps.setString(2, studentId);
+	        	ps.setString(1, dateTime);
+	        }								
 			try {
 				int rowCount = ps.executeUpdate();
 				JSONObject jsonobj = new JSONObject();
 				if(rowCount>0){
 					jsonobj.put("success", true);
-					jsonobj.put("msg","签到或签退成功");
+					jsonobj.put("msg","sign successfully");
 				}
 				out = response.getWriter();
 				out.println(jsonobj);
