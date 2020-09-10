@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import net.sf.json.JSONObject;
+import servlet.global.BaseDao;
 
 import java.util.UUID;
 /**
@@ -22,7 +23,7 @@ import java.util.UUID;
 @WebServlet("/api/usermanage/regist")
 public class Regist extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+    private BaseDao dao = new BaseDao();
     /**
      * @see HttpServlet#HttpServlet()
      */
@@ -49,16 +50,16 @@ public class Regist extends HttpServlet {
 		PrintWriter out = response.getWriter();
 		Connection conn = null;
 		try {
-			ServletInputStream is = request.getInputStream();
-			int nRead = 1;
+			//ServletInputStream is = request.getInputStream();
+			/*int nRead = 1;
 			int nTotalRead = 0;
 			byte[] bytes = new byte[10240];
 			while (nRead > 0) {
 				nRead = is.read(bytes, nTotalRead, bytes.length - nTotalRead);
 				if (nRead > 0)
 					nTotalRead = nTotalRead + nRead;
-			}
-			String str = new String(bytes, 0, nTotalRead, "utf-8");
+			}*/
+			String str = dao.readRequest(request);//new String(bytes, 0, nTotalRead, "utf-8");
 			JSONObject jsonObj = JSONObject.fromObject(str);
 			if(!jsonObj.has("telephone")) {
 				jsonObj.put("telephone", "");
@@ -66,8 +67,8 @@ public class Regist extends HttpServlet {
 			if(!jsonObj.has("email")) {
 				jsonObj.put("email", "");
 			}
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuorg?useSSL=false&serverTimezone=GMT","root","root");
+			//Class.forName("com.mysql.cj.jdbc.Driver");
+			conn = dao.getConnection();//DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuorg?useSSL=false&serverTimezone=GMT","root","root");
 			Statement stmt = conn.createStatement();
 			String userID = UUID.randomUUID().toString();
 			String userName = jsonObj.getString("username");
@@ -90,8 +91,6 @@ public class Regist extends HttpServlet {
 				}
 				out = response.getWriter();
 				out.println(jsonobj);
-				stmt.close();
-				conn.close();
 			}
 			catch(Exception e) {
 				JSONObject jsonobj = new JSONObject();
@@ -99,10 +98,9 @@ public class Regist extends HttpServlet {
 				jsonobj.put("msg",e.getMessage());
 				out = response.getWriter();
 				out.println(jsonobj);
-				stmt.close();
-				conn.close();
 			}
-		} catch (SQLException | ClassNotFoundException e) {
+			dao.closeAll(conn, stmt, null);
+		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 	}

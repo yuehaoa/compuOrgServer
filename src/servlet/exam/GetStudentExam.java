@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import servlet.global.BaseDao;
 
 /**
  * Servlet implementation class GetStudentExam
@@ -24,7 +25,7 @@ import net.sf.json.JSONObject;
 @WebServlet("/api/exammanage/getStudentExam")
 public class GetStudentExam extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+    private BaseDao dao = new BaseDao();
     /**
      * @see HttpServlet#HttpServlet()
      */
@@ -51,14 +52,15 @@ public class GetStudentExam extends HttpServlet {
 		response.setContentType("text/json; charset=utf-8");
 		PrintWriter out = response.getWriter();
 		Connection conn = null;
+		ResultSet rs = null;
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn=DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
+			//Class.forName("com.mysql.cj.jdbc.Driver");
+			conn=dao.getConnection();//DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
 			Statement stmt = conn.createStatement();
-			ServletInputStream is;
+			//ServletInputStream is;
 			JSONObject result = new JSONObject();
 			try {
-				is = request.getInputStream();
+				/*is = request.getInputStream();
 				int nRead = 1;
 				int nTotalRead = 0;
 				byte[] bytes = new byte[10240];
@@ -66,8 +68,8 @@ public class GetStudentExam extends HttpServlet {
 					nRead = is.read(bytes, nTotalRead, bytes.length - nTotalRead);
 					if (nRead > 0)
 						nTotalRead = nTotalRead + nRead;
-				}
-				String str = new String(bytes, 0, nTotalRead, "utf-8");
+				}*/
+				String str = dao.readRequest(request);//new String(bytes, 0, nTotalRead, "utf-8");
 				JSONObject jsonObj = JSONObject.fromObject(str);
 				String studentId = jsonObj.getString("studentId");
 				String expID = jsonObj.getString("expID");
@@ -76,7 +78,7 @@ public class GetStudentExam extends HttpServlet {
 				PreparedStatement ps = conn.prepareStatement(sql);
 				ps.setString(1, studentId);
 				ps.setString(2, expID);
-				ResultSet rs = ps.executeQuery();
+				rs = ps.executeQuery();
 				JSONArray data = new JSONArray();
 				while(rs.next()) {
 					String examID = rs.getString("examID");
@@ -107,8 +109,7 @@ public class GetStudentExam extends HttpServlet {
 			}
 			out = response.getWriter();
 			out.println(result);
-			conn.close();
-			stmt.close();
+			dao.closeAll(conn, stmt, rs);
 		}
 		catch(Exception e) {
 			

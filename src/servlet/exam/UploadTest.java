@@ -19,6 +19,7 @@ import javax.servlet.http.HttpSession;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import servlet.global.BaseDao;
 
 /**
  * Servlet implementation class UploadTest
@@ -26,7 +27,7 @@ import net.sf.json.JSONObject;
 @WebServlet("/api/exammanage/uploadTest")
 public class UploadTest extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+    private BaseDao dao  =new BaseDao();
     /**
      * @see HttpServlet#HttpServlet()
      */
@@ -52,16 +53,18 @@ public class UploadTest extends HttpServlet {
 		response.setContentType("text/json; charset=utf-8");
 		PrintWriter out = response.getWriter();
 		Connection conn = null;
+		Statement stmt = null;
 		HttpSession session  = request.getSession();
 		JSONObject result = new JSONObject();
+		ResultSet rs = null;
 		//HttpSession session = request.getSession();
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn=DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
-			Statement stmt = conn.createStatement();
-			ServletInputStream is;
+			//Class.forName("com.mysql.cj.jdbc.Driver");
+			conn=dao.getConnection();//DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
+			stmt = conn.createStatement();
+			//ServletInputStream is;
 			try {
-				is = request.getInputStream();
+				/*is = request.getInputStream();
 				int nRead = 1;
 				int nTotalRead = 0;
 				byte[] bytes = new byte[10240];
@@ -69,8 +72,8 @@ public class UploadTest extends HttpServlet {
 					nRead = is.read(bytes, nTotalRead, bytes.length - nTotalRead);
 					if (nRead > 0)
 						nTotalRead = nTotalRead + nRead;
-				}
-				String str = new String(bytes, 0, nTotalRead, "utf-8");
+				}*/
+				String str = dao.readRequest(request);//new String(bytes, 0, nTotalRead, "utf-8");
 				JSONObject jsonObj = JSONObject.fromObject(str);
 				String expID = jsonObj.getString("expID");
 				String userId = (String) session.getAttribute("userId");
@@ -78,7 +81,7 @@ public class UploadTest extends HttpServlet {
 				PreparedStatement ps = conn.prepareStatement(sql);
 				ps.setString(1, userId);
 				boolean isTeacher = false;
-				ResultSet rs = ps.executeQuery();
+				rs = ps.executeQuery();
 				while(rs.next()) {
 					String roleName = rs.getString("roleName");
 					if(roleName.compareTo("teacher")==0) {
@@ -149,8 +152,7 @@ public class UploadTest extends HttpServlet {
 			}
 			out = response.getWriter();
 			out.println(result);
-			stmt.close();
-			conn.close();
+			dao.closeAll(conn, stmt, rs);
 		}
 		catch(Exception e) {
 			e.printStackTrace();
