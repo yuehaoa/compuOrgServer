@@ -20,6 +20,7 @@ import javax.servlet.http.HttpSession;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import servlet.global.BaseDao;
 
 /**
  * Servlet implementation class login
@@ -27,7 +28,7 @@ import net.sf.json.JSONObject;
 @WebServlet("/api/usermanage/login")
 public class Login extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-    
+    private BaseDao dao = new BaseDao();
     /**
      * @see HttpServlet#HttpServlet()
      */
@@ -54,12 +55,13 @@ public class Login extends HttpServlet {
 		HttpSession session = request.getSession();
 		//HttpSession session = request.getSession();
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn=DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
+			//Class.forName("com.mysql.cj.jdbc.Driver");
+			//conn=DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
+			conn = dao.getConnection();
 			Statement stmt = conn.createStatement();
-			ServletInputStream is;
+			// ServletInputStream is;
 			try {
-				is = request.getInputStream();
+				/*is = request.getInputStream();
 				int nRead = 1;
 				int nTotalRead = 0;
 				byte[] bytes = new byte[10240];
@@ -67,8 +69,8 @@ public class Login extends HttpServlet {
 					nRead = is.read(bytes, nTotalRead, bytes.length - nTotalRead);
 					if (nRead > 0)
 						nTotalRead = nTotalRead + nRead;
-				}
-				String str = new String(bytes, 0, nTotalRead, "utf-8");
+				}*/
+				String str = dao.readRequest(request);//new String(bytes, 0, nTotalRead, "utf-8");
 				JSONObject jsonObj = JSONObject.fromObject(str);
 				String userName = jsonObj.getString("userName");
 				String password = jsonObj.getString("password");
@@ -103,13 +105,11 @@ public class Login extends HttpServlet {
 				}
 				out = response.getWriter();
 				out.println(jsonobj);
-				rs.close();
-				stmt.close();
-				conn.close();
+				dao.closeAll(conn, stmt, rs);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		} catch (SQLException | ClassNotFoundException e) {
+		} catch (SQLException e) {
 			e.printStackTrace();
 		}
 		

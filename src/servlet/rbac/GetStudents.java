@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import servlet.global.BaseDao;
 
 /**
  * Servlet implementation class GetStudents
@@ -24,7 +25,7 @@ import net.sf.json.JSONObject;
 @WebServlet("/api/usermanage/getStudents")
 public class GetStudents extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+    private BaseDao dao = new BaseDao();
     /**
      * @see HttpServlet#HttpServlet()
      */
@@ -51,14 +52,15 @@ public class GetStudents extends HttpServlet {
 		response.setContentType("text/json; charset=utf-8");
 		PrintWriter out = response.getWriter();
 		Connection conn = null;
+		ResultSet rs = null;
 		try {
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn=DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
+			//Class.forName("com.mysql.cj.jdbc.Driver");
+			conn=dao.getConnection();//DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuOrg?useSSL=false&serverTimezone=GMT","root","root");
 			Statement stmt = conn.createStatement();
 			JSONObject result = new JSONObject();
-			ServletInputStream is;
+			//ServletInputStream is;
 			try {
-				is = request.getInputStream();
+				/*is = request.getInputStream();
 				int nRead = 1;
 				int nTotalRead = 0;
 				byte[] bytes = new byte[10240];
@@ -66,8 +68,8 @@ public class GetStudents extends HttpServlet {
 					nRead = is.read(bytes, nTotalRead, bytes.length - nTotalRead);
 					if (nRead > 0)
 						nTotalRead = nTotalRead + nRead;
-				}
-				String str = new String(bytes, 0, nTotalRead, "utf-8");
+				}*/
+				String str = dao.readRequest(request);//new String(bytes, 0, nTotalRead, "utf-8");
 				JSONObject jsonObj = JSONObject.fromObject(str);
 				boolean finished  = false;
 				if(jsonObj.has("finished"))  finished = true;
@@ -76,7 +78,7 @@ public class GetStudents extends HttpServlet {
 						+ "and student.studentId = user_role.userId and user_role.userId = user_exp.userId and user_exp.finish = 1";
 				String sql3 = "select student.*, user_exp.* from user_role, student, user_exp where roleId = ? "
 						+ "and student.studentId = user_role.userId and user_role.userId = user_exp.userId and user_exp.finish = 0";
-				ResultSet rs = stmt.executeQuery(sql);
+				rs = stmt.executeQuery(sql);
 				JSONArray data = new JSONArray();
 				if(rs.next()) {
 					String roleId = rs.getString("roleId");
@@ -100,6 +102,7 @@ public class GetStudents extends HttpServlet {
 						temp.put("score", score);
 						data.add(temp);
 					}
+					rs2.close();
 				}
 				result.put("success", true);
 				result.put("students", data);
@@ -110,8 +113,7 @@ public class GetStudents extends HttpServlet {
 			}
 			out = response.getWriter();
 			out.println(result);
-			conn.close();
-			stmt.close();
+			dao.closeAll(conn, stmt, rs);
 		}
 		catch(Exception e) {
 			
