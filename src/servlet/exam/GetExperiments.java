@@ -19,6 +19,7 @@ import javax.servlet.http.HttpSession;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
+import servlet.global.BaseDao;
 
 /**
  * Servlet implementation class GetExperiments
@@ -26,7 +27,7 @@ import net.sf.json.JSONObject;
 @WebServlet("/api/exammanage/getExperiments")
 public class GetExperiments extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-       
+    private BaseDao dao = new BaseDao();
     /**
      * @see HttpServlet#HttpServlet()
      */
@@ -52,10 +53,12 @@ public class GetExperiments extends HttpServlet {
 		response.setContentType("text/json; charset=utf-8");
 		PrintWriter out = response.getWriter();
 		Connection conn = null;
+		Statement stmt = null;
+		ResultSet rs = null;
 		JSONObject jsonobj = new JSONObject();
 		HttpSession session = request.getSession();
 		try {
-			ServletInputStream is = request.getInputStream();
+			/*ServletInputStream is = request.getInputStream();
 			int nRead = 1;
 			int nTotalRead = 0;
 			byte[] bytes = new byte[10240];
@@ -63,13 +66,13 @@ public class GetExperiments extends HttpServlet {
 				nRead = is.read(bytes, nTotalRead, bytes.length - nTotalRead);
 				if (nRead > 0)
 					nTotalRead = nTotalRead + nRead;
-			}
-			String str = new String(bytes, 0, nTotalRead, "utf-8");
+			}*/
+			String str = dao.readRequest(request);//new String(bytes, 0, nTotalRead, "utf-8");
 			JSONObject jsonObj = JSONObject.fromObject(str);
 			String studentId = (String) session.getAttribute("userId");
-			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuorg?useSSL=false&serverTimezone=GMT","root","root");
-			Statement stmt = conn.createStatement();
+			//Class.forName("com.mysql.cj.jdbc.Driver");
+			conn = dao.getConnection();//DriverManager.getConnection("jdbc:mysql://47.115.31.88:3306/compuorg?useSSL=false&serverTimezone=GMT","root","root");
+			stmt = conn.createStatement();
 			boolean finish = false;
 			if(jsonObj.has("finished")) finish = true;
 			String sql = "select experiment.* from user_exp, experiment where user_exp.userId = ? and user_exp.expID = experiment.experID and finish = 1";
@@ -78,7 +81,7 @@ public class GetExperiments extends HttpServlet {
 			if(!finish) ps = conn.prepareStatement(sql);
 			else ps = conn.prepareStatement(sql2);
 			ps.setString(1, studentId);
-			ResultSet rs = ps.executeQuery();
+			rs = ps.executeQuery();
 			JSONArray array = new JSONArray();
 			while(rs.next()) {
 				JSONObject temp = new JSONObject();
@@ -95,8 +98,6 @@ public class GetExperiments extends HttpServlet {
 			jsonobj.put("data",array);
 			jsonobj.put("studentId",studentId);
 			jsonobj.put("success",true);
-			rs.close();
-			stmt.close();
 		}
 		catch(Exception e) {
 			jsonobj.put("success",false);
@@ -105,7 +106,7 @@ public class GetExperiments extends HttpServlet {
 		out = response.getWriter();
 		out.println(jsonobj);
 		try {
-			conn.close();
+			dao.closeAll(conn, stmt, rs);
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
